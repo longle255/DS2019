@@ -1,13 +1,15 @@
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ServerWithOperatorAndProtobufAndHandshake {
     private ServerSocket server;
-    //    private Vector<SocketHandler> clients = new Vector<SocketHandler>();
     private Map<Integer, SocketHandler> activeClients = new HashMap<>();
+    private Map<Integer, List> allPendingMsgs = new HashMap<>();
 
     public ServerWithOperatorAndProtobufAndHandshake(int port) {
         try {
@@ -81,6 +83,14 @@ public class ServerWithOperatorAndProtobufAndHandshake {
             handshakeOut.setError(false);
             handshakeOut.build().writeDelimitedTo(out);
             System.out.println("Connection " + handshakeIn.getId() + " Established");
+
+            List pendingMsgs = allPendingMsgs.get(this.clientId);
+            if (pendingMsgs != null && pendingMsgs.size() > 0) {
+                while (pendingMsgs.size() > 0) {
+                    Protocol.Message msg = (Protocol.Message) pendingMsgs.remove(0);
+                    msg.writeDelimitedTo(out);
+                }
+            }
         }
 
         @Override
@@ -104,8 +114,15 @@ public class ServerWithOperatorAndProtobufAndHandshake {
 
                         SocketHandler other = activeClients.get(fromClient.getTo());
                         if (other == null) {
-                            Protocol.Message res = prepareMsg(serverId, fromClient.getFr(), "Client with id " + fromClient.getTo() + " does not exist");
+                            Protocol.Message res = prepareMsg(serverId, fromClient.getFr(), "Client with id " + fromClient.getTo() + " is not connected. Msg will be put in queue");
                             res.writeDelimitedTo(out);
+                            Protocol.Message pendingMsg = prepareMsg(fromClient.getFr(), fromClient.getTo(), fromClient.getMsg());
+                            List pendingMsgOfTheOther = allPendingMsgs.get(fromClient.getTo());
+                            if (pendingMsgOfTheOther == null) {
+                                pendingMsgOfTheOther = new ArrayList();
+                                allPendingMsgs.put(fromClient.getTo(), pendingMsgOfTheOther);
+                            }
+                            pendingMsgOfTheOther.add(pendingMsg);
                             continue;
                         }
                         DataOutputStream otherOut = other.out;
