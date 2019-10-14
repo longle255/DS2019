@@ -54,23 +54,41 @@ public class ServerWithOperatorAndProtobufAndHandshake {
             this.out = new DataOutputStream(socket.getOutputStream());
         }
 
+        public Protocol.Message prepareMsg(int from, int to, String msg) {
+            Protocol.Message.Builder builder = Protocol.Message.newBuilder();
+            return builder.setFr(from).setTo(to).setMsg(msg).build();
+        }
+
+        public void disconnect() {
+            System.out.println("Closing connection");
+            activeClients.remove(this.clientId);
+            try {
+                socket.close();
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        private void handshake() throws IOException {
+            Protocol.Handshake handshakeIn = Protocol.Handshake.parseDelimitedFrom(in);
+            this.clientId = handshakeIn.getId();
+            activeClients.put(this.clientId, this);
+
+            Protocol.Handshake.Builder handshakeOut = Protocol.Handshake.newBuilder();
+            handshakeOut.setId(handshakeIn.getId());
+            handshakeOut.setError(false);
+            handshakeOut.build().writeDelimitedTo(out);
+            System.out.println("Connection " + handshakeIn.getId() + " Established");
+        }
+
         @Override
         public void run() {
             try {
 //                clients.add(this);
                 int serverId = 0;
-
-                Protocol.Handshake handshakeIn = Protocol.Handshake.parseDelimitedFrom(in);
-                this.clientId = handshakeIn.getId();
-                activeClients.put(this.clientId, this);
-
-                Protocol.Handshake.Builder handshakeOut = Protocol.Handshake.newBuilder();
-                handshakeOut.setId(handshakeIn.getId());
-                handshakeOut.setError(false);
-                handshakeOut.build().writeDelimitedTo(out);
-
-
-                System.out.println("Connection " + handshakeIn.getId() + " Established");
+                this.handshake();
                 String msg = "";
                 while (!msg.equals("end")) {
                     try {
@@ -78,7 +96,7 @@ public class ServerWithOperatorAndProtobufAndHandshake {
                         Protocol.Message fromClient = Protocol.Message.parseDelimitedFrom(in);
                         msg = fromClient.getMsg();
                         if (msg == null) {
-                            activeClients.remove(this.clientId);
+                            disconnect();
                             return;
                         }
 
@@ -86,32 +104,18 @@ public class ServerWithOperatorAndProtobufAndHandshake {
 
                         SocketHandler other = activeClients.get(fromClient.getTo());
                         if (other == null) {
-                            Protocol.Message.Builder toClient = Protocol.Message.newBuilder();
-                            toClient.setFr(serverId);
-                            toClient.setTo(fromClient.getFr());
-                            toClient.setMsg("Clien with id " + fromClient.getTo() + " does not exist");
-                            toClient.build().writeDelimitedTo(out);
+                            Protocol.Message res = prepareMsg(serverId, fromClient.getFr(), "Client with id " + fromClient.getTo() + " does not exist");
+                            res.writeDelimitedTo(out);
                             continue;
                         }
                         DataOutputStream otherOut = other.out;
-                        //out.writeUTF(msg);
-                        Protocol.Message.Builder toClient = Protocol.Message.newBuilder();
-                        toClient.setFr(fromClient.getFr());
-                        toClient.setTo(fromClient.getTo());
-                        toClient.setMsg(fromClient.getMsg());
-                        toClient.build().writeDelimitedTo(otherOut);
+                        Protocol.Message msgToOther = prepareMsg(fromClient.getFr(), fromClient.getTo(), fromClient.getMsg());
+                        msgToOther.writeDelimitedTo(otherOut);
                     } catch (IOException i) {
                         System.out.println(i);
                     }
                 }
-
-
-                System.out.println("Closing connection");
-                activeClients.remove(this.clientId);
-                // close connection
-                socket.close();
-                in.close();
-                out.close();
+                disconnect();
             } catch (IOException e) {
                 e.printStackTrace();
             }
