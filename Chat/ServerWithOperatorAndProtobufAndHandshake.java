@@ -1,16 +1,13 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.Vector;
-import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ServerWithOperatorAndProtobufAndHandshake {
     private ServerSocket server;
-    private int clientCount = 0;
-    private Vector<SocketHandler> clients = new Vector<SocketHandler>();
+    //    private Vector<SocketHandler> clients = new Vector<SocketHandler>();
+    private Map<Integer, SocketHandler> activeClients = new HashMap<>();
 
     public ServerWithOperatorAndProtobufAndHandshake(int port) {
         try {
@@ -24,7 +21,7 @@ public class ServerWithOperatorAndProtobufAndHandshake {
             while (true) {
                 Socket socket = server.accept();
                 System.out.println("Client accepted");
-                Thread handler = new SocketHandler(socket, ++clientCount);
+                Thread handler = new SocketHandler(socket);
                 handler.start();
             }
         } catch (IOException e) {
@@ -51,55 +48,66 @@ public class ServerWithOperatorAndProtobufAndHandshake {
         private String prefix;
         private int clientId;
 
-        public SocketHandler(Socket socket, int clientId) throws IOException {
+        public SocketHandler(Socket socket) throws IOException {
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
-            this.clientId = clientId;
-            this.prefix = "Client[" + clientId + "]: ";
         }
 
         @Override
         public void run() {
             try {
-                clients.add(this);
-                int serverId = 1;
+//                clients.add(this);
+                int serverId = 0;
 
                 Protocol.Handshake handshakeIn = Protocol.Handshake.parseDelimitedFrom(in);
-
-                boolean someCondition = false;
+                this.clientId = handshakeIn.getId();
+                activeClients.put(this.clientId, this);
 
                 Protocol.Handshake.Builder handshakeOut = Protocol.Handshake.newBuilder();
                 handshakeOut.setId(handshakeIn.getId());
                 handshakeOut.setError(false);
                 handshakeOut.build().writeDelimitedTo(out);
 
-                if(someCondition){
-                    System.out.println("Error in Connection "+handshakeIn.getId());
-                } else {
-                    System.out.println("Connection "+handshakeIn.getId() +" Established");
-                    String msg = "";
-                    while (!msg.equals("end")) {
-                        try {
-                            //msg = in.readUTF();
-                            Protocol.Message fromClient = Protocol.Message.parseDelimitedFrom(in);
-                            System.out.println(prefix + fromClient.getMsg() + ", Id: " + fromClient.getFr());
-                            msg = fromClient.getMsg();
 
-                            //out.writeUTF(msg);
+                System.out.println("Connection " + handshakeIn.getId() + " Established");
+                String msg = "";
+                while (!msg.equals("end")) {
+                    try {
+                        //msg = in.readUTF();
+                        Protocol.Message fromClient = Protocol.Message.parseDelimitedFrom(in);
+                        msg = fromClient.getMsg();
+                        if (msg == null) {
+                            activeClients.remove(this.clientId);
+                            return;
+                        }
+
+                        System.out.println("Msg from client " + fromClient.getFr() + " to client " + fromClient.getTo() + ":" + fromClient.getMsg());
+
+                        SocketHandler other = activeClients.get(fromClient.getTo());
+                        if (other == null) {
                             Protocol.Message.Builder toClient = Protocol.Message.newBuilder();
                             toClient.setFr(serverId);
                             toClient.setTo(fromClient.getFr());
-                            toClient.setMsg(fromClient.getMsg());
+                            toClient.setMsg("Clien with id " + fromClient.getTo() + " does not exist");
                             toClient.build().writeDelimitedTo(out);
-                        } catch (IOException i) {
-                            System.out.println(i);
+                            continue;
                         }
+                        DataOutputStream otherOut = other.out;
+                        //out.writeUTF(msg);
+                        Protocol.Message.Builder toClient = Protocol.Message.newBuilder();
+                        toClient.setFr(fromClient.getFr());
+                        toClient.setTo(fromClient.getTo());
+                        toClient.setMsg(fromClient.getMsg());
+                        toClient.build().writeDelimitedTo(otherOut);
+                    } catch (IOException i) {
+                        System.out.println(i);
                     }
                 }
 
+
                 System.out.println("Closing connection");
-                clients.remove(this);
+                activeClients.remove(this.clientId);
                 // close connection
                 socket.close();
                 in.close();
@@ -116,11 +124,11 @@ public class ServerWithOperatorAndProtobufAndHandshake {
         @Override
         public void run() {
             String command = "";
-            while(true){
+            while (true) {
                 try {
                     command = input.readLine();
-                    if(command.equals("n_users")){
-                        System.out.println("Users Connected: "+clients.size());
+                    if (command.equals("n_users")) {
+                        System.out.println("Users Connected: " + activeClients.keySet().size());
                     } else {
                         System.out.println("Invalid Command");
                     }
