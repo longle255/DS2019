@@ -4,6 +4,7 @@ message Message {
   required int32 fr = 1;
   required int32 to = 2;
   required string msg = 3;
+  repeated int32 hops = 4;
 }
 
 message Handshake {

@@ -54,6 +54,23 @@ public final class Protocol {
      */
     com.google.protobuf.ByteString
         getMsgBytes();
+
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @return A list containing the hops.
+     */
+    java.util.List<java.lang.Integer> getHopsList();
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @return The count of hops.
+     */
+    int getHopsCount();
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @param index The index of the element to return.
+     * @return The hops at the given index.
+     */
+    int getHops(int index);
   }
   /**
    * Protobuf type {@code Message}
@@ -69,6 +86,7 @@ public final class Protocol {
     }
     private Message() {
       msg_ = "";
+      hops_ = emptyIntList();
     }
 
     @java.lang.Override
@@ -118,6 +136,27 @@ public final class Protocol {
               msg_ = bs;
               break;
             }
+            case 32: {
+              if (!((mutable_bitField0_ & 0x00000008) != 0)) {
+                hops_ = newIntList();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              hops_.addInt(input.readInt32());
+              break;
+            }
+            case 34: {
+              int length = input.readRawVarint32();
+              int limit = input.pushLimit(length);
+              if (!((mutable_bitField0_ & 0x00000008) != 0) && input.getBytesUntilLimit() > 0) {
+                hops_ = newIntList();
+                mutable_bitField0_ |= 0x00000008;
+              }
+              while (input.getBytesUntilLimit() > 0) {
+                hops_.addInt(input.readInt32());
+              }
+              input.popLimit(limit);
+              break;
+            }
             default: {
               if (!parseUnknownField(
                   input, unknownFields, extensionRegistry, tag)) {
@@ -133,6 +172,9 @@ public final class Protocol {
         throw new com.google.protobuf.InvalidProtocolBufferException(
             e).setUnfinishedMessage(this);
       } finally {
+        if (((mutable_bitField0_ & 0x00000008) != 0)) {
+          hops_.makeImmutable(); // C
+        }
         this.unknownFields = unknownFields.build();
         makeExtensionsImmutable();
       }
@@ -230,6 +272,32 @@ public final class Protocol {
       }
     }
 
+    public static final int HOPS_FIELD_NUMBER = 4;
+    private com.google.protobuf.Internal.IntList hops_;
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @return A list containing the hops.
+     */
+    public java.util.List<java.lang.Integer>
+        getHopsList() {
+      return hops_;
+    }
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @return The count of hops.
+     */
+    public int getHopsCount() {
+      return hops_.size();
+    }
+    /**
+     * <code>repeated int32 hops = 4;</code>
+     * @param index The index of the element to return.
+     * @return The hops at the given index.
+     */
+    public int getHops(int index) {
+      return hops_.getInt(index);
+    }
+
     private byte memoizedIsInitialized = -1;
     @java.lang.Override
     public final boolean isInitialized() {
@@ -265,6 +333,9 @@ public final class Protocol {
       if (((bitField0_ & 0x00000004) != 0)) {
         com.google.protobuf.GeneratedMessageV3.writeString(output, 3, msg_);
       }
+      for (int i = 0; i < hops_.size(); i++) {
+        output.writeInt32(4, hops_.getInt(i));
+      }
       unknownFields.writeTo(output);
     }
 
@@ -284,6 +355,15 @@ public final class Protocol {
       }
       if (((bitField0_ & 0x00000004) != 0)) {
         size += com.google.protobuf.GeneratedMessageV3.computeStringSize(3, msg_);
+      }
+      {
+        int dataSize = 0;
+        for (int i = 0; i < hops_.size(); i++) {
+          dataSize += com.google.protobuf.CodedOutputStream
+            .computeInt32SizeNoTag(hops_.getInt(i));
+        }
+        size += dataSize;
+        size += 1 * getHopsList().size();
       }
       size += unknownFields.getSerializedSize();
       memoizedSize = size;
@@ -315,6 +395,8 @@ public final class Protocol {
         if (!getMsg()
             .equals(other.getMsg())) return false;
       }
+      if (!getHopsList()
+          .equals(other.getHopsList())) return false;
       if (!unknownFields.equals(other.unknownFields)) return false;
       return true;
     }
@@ -337,6 +419,10 @@ public final class Protocol {
       if (hasMsg()) {
         hash = (37 * hash) + MSG_FIELD_NUMBER;
         hash = (53 * hash) + getMsg().hashCode();
+      }
+      if (getHopsCount() > 0) {
+        hash = (37 * hash) + HOPS_FIELD_NUMBER;
+        hash = (53 * hash) + getHopsList().hashCode();
       }
       hash = (29 * hash) + unknownFields.hashCode();
       memoizedHashCode = hash;
@@ -477,6 +563,8 @@ public final class Protocol {
         bitField0_ = (bitField0_ & ~0x00000002);
         msg_ = "";
         bitField0_ = (bitField0_ & ~0x00000004);
+        hops_ = emptyIntList();
+        bitField0_ = (bitField0_ & ~0x00000008);
         return this;
       }
 
@@ -517,6 +605,11 @@ public final class Protocol {
           to_bitField0_ |= 0x00000004;
         }
         result.msg_ = msg_;
+        if (((bitField0_ & 0x00000008) != 0)) {
+          hops_.makeImmutable();
+          bitField0_ = (bitField0_ & ~0x00000008);
+        }
+        result.hops_ = hops_;
         result.bitField0_ = to_bitField0_;
         onBuilt();
         return result;
@@ -575,6 +668,16 @@ public final class Protocol {
         if (other.hasMsg()) {
           bitField0_ |= 0x00000004;
           msg_ = other.msg_;
+          onChanged();
+        }
+        if (!other.hops_.isEmpty()) {
+          if (hops_.isEmpty()) {
+            hops_ = other.hops_;
+            bitField0_ = (bitField0_ & ~0x00000008);
+          } else {
+            ensureHopsIsMutable();
+            hops_.addAll(other.hops_);
+          }
           onChanged();
         }
         this.mergeUnknownFields(other.unknownFields);
@@ -770,6 +873,85 @@ public final class Protocol {
   }
   bitField0_ |= 0x00000004;
         msg_ = value;
+        onChanged();
+        return this;
+      }
+
+      private com.google.protobuf.Internal.IntList hops_ = emptyIntList();
+      private void ensureHopsIsMutable() {
+        if (!((bitField0_ & 0x00000008) != 0)) {
+          hops_ = mutableCopy(hops_);
+          bitField0_ |= 0x00000008;
+         }
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @return A list containing the hops.
+       */
+      public java.util.List<java.lang.Integer>
+          getHopsList() {
+        return ((bitField0_ & 0x00000008) != 0) ?
+                 java.util.Collections.unmodifiableList(hops_) : hops_;
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @return The count of hops.
+       */
+      public int getHopsCount() {
+        return hops_.size();
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @param index The index of the element to return.
+       * @return The hops at the given index.
+       */
+      public int getHops(int index) {
+        return hops_.getInt(index);
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @param index The index to set the value at.
+       * @param value The hops to set.
+       * @return This builder for chaining.
+       */
+      public Builder setHops(
+          int index, int value) {
+        ensureHopsIsMutable();
+        hops_.setInt(index, value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @param value The hops to add.
+       * @return This builder for chaining.
+       */
+      public Builder addHops(int value) {
+        ensureHopsIsMutable();
+        hops_.addInt(value);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @param values The hops to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllHops(
+          java.lang.Iterable<? extends java.lang.Integer> values) {
+        ensureHopsIsMutable();
+        com.google.protobuf.AbstractMessageLite.Builder.addAll(
+            values, hops_);
+        onChanged();
+        return this;
+      }
+      /**
+       * <code>repeated int32 hops = 4;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearHops() {
+        hops_ = emptyIntList();
+        bitField0_ = (bitField0_ & ~0x00000008);
         onChanged();
         return this;
       }
@@ -1467,9 +1649,9 @@ public final class Protocol {
       descriptor;
   static {
     java.lang.String[] descriptorData = {
-      "\n\016protocol.proto\".\n\007Message\022\n\n\002fr\030\001 \002(\005\022" +
-      "\n\n\002to\030\002 \002(\005\022\013\n\003msg\030\003 \002(\t\"&\n\tHandshake\022\n\n" +
-      "\002id\030\001 \002(\005\022\r\n\005error\030\002 \001(\010"
+      "\n\016protocol.proto\"<\n\007Message\022\n\n\002fr\030\001 \002(\005\022" +
+      "\n\n\002to\030\002 \002(\005\022\013\n\003msg\030\003 \002(\t\022\014\n\004hops\030\004 \003(\005\"&" +
+      "\n\tHandshake\022\n\n\002id\030\001 \002(\005\022\r\n\005error\030\002 \001(\010"
     };
     descriptor = com.google.protobuf.Descriptors.FileDescriptor
       .internalBuildGeneratedFileFrom(descriptorData,
@@ -1480,7 +1662,7 @@ public final class Protocol {
     internal_static_Message_fieldAccessorTable = new
       com.google.protobuf.GeneratedMessageV3.FieldAccessorTable(
         internal_static_Message_descriptor,
-        new java.lang.String[] { "Fr", "To", "Msg", });
+        new java.lang.String[] { "Fr", "To", "Msg", "Hops", });
     internal_static_Handshake_descriptor =
       getDescriptor().getMessageTypes().get(1);
     internal_static_Handshake_fieldAccessorTable = new
